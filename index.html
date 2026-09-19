@@ -4766,7 +4766,7 @@ html.dark .pi-summary-note div{color:#d7dbe3}
         + '<div class="top fact-header"><div>'
           + '<button class="smallbtn" onclick="closeFactsheetPreview()">\u2190 Back to List</button>'
           + '<h1 style="margin-top:15px">'+piEsc3(titleDisplay)+'</h1>'
-          + '<p class="home-description" style="margin:4px 0 0">'+piEsc3(p.company||'')+'   \u00b7   <span class="pill '+statusClass+'" style="vertical-align:middle">'+piEsc3(statusName)+'</span></p>'
+          + '<p class="home-description" style="margin:4px 0 0"><span class="pill '+statusClass+'" style="vertical-align:middle">'+piEsc3(statusName)+'</span></p>'
         + '</div><div class="topactions">'
           + '<button class="smallbtn" onclick="exportProjectPDF(\''+p.id+'\')">Export PDF</button>'
           + (hasExcel ? ('<button class="smallbtn" onclick="piExportJobExcel(\''+p.id+'\')">Export Excel</button>') : '')
