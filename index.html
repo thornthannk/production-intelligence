@@ -3357,6 +3357,50 @@ html.dark .pi-mqv-search-btn{background:rgba(255,255,255,.92);color:#111}
     color:#e9e9e9;
     border-color:rgba(255,255,255,0.12);
   }
+  /* ================= Production Transport table: scroll instead of squish
+     (mobile) =================
+     PREVIOUS FIX WAS INCOMPLETE: wrapping the table markup in a
+     .table-scroll div (done elsewhere in this file) only enables
+     horizontal scrolling once the table itself is actually WIDER than
+     that wrapper. .transport-table still had width:100% with no min-width,
+     so on a narrow phone it simply matched the wrapper's (screen) width
+     and never overflowed - there was nothing to scroll, and every
+     percentage-based column (table-layout:fixed) stayed just as cramped
+     as before. Explicitly forcing a generous min-width here is what
+     actually makes the table wider than the screen, which is what makes
+     the wrapper's overflow-x:auto do anything at all. */
+  .transport-table{
+    width:auto!important;
+    min-width:860px;
+  }
+  /* TRUE ROOT CAUSE of the header text stacking one letter per line
+     ("P/I/C/K/U/P..."): the base stylesheet sets
+     overflow-wrap:break-word on .transport-table th/td. overflow-wrap's
+     entire purpose is to force a break INSIDE a word when it would
+     otherwise overflow its column - and it does this even though
+     white-space:nowrap is also set, because those two properties govern
+     different things (nowrap only suppresses breaking AT normal space
+     characters; it does not stop overflow-wrap's own emergency mid-word
+     breaking). With a very narrow fixed-width column, that "emergency
+     break" ends up firing after nearly every single character, producing
+     the vertical one-letter-per-line stack seen in testing. Resetting
+     overflow-wrap/word-break back to normal - now that the table
+     genuinely scrolls horizontally instead of being squeezed - lets
+     multi-word headers like "Pick-up Time" or "Food Allergy" wrap only
+     at their natural space/hyphen, i.e. as two short, readable lines,
+     instead of being shredded letter by letter. */
+  .transport-table th{
+    font-size:9.5px!important;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+    white-space:normal!important;
+    line-height:1.3!important;
+  }
+  .transport-table td{
+    font-size:11.5px!important;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+  }
   /* TRUE ROOT CAUSE of "Airing Date / Delivery Date extends past the
      modal edge": .formgrid is a CSS Grid, and even after collapsing it
      to a single column on mobile, a bare `1fr` track still carries an
