@@ -4988,4 +4988,153 @@ html.dark .pi-summary-note div{color:#d7dbe3}
   }
 })();
 </script>
+<script id="pi-save-integrity-patch">
+(function(){
+  "use strict";
+  try{
+
+    /* ============================================================
+       SAVE INTEGRITY PATCH
+       Fixes silent data loss when adding a new Project Tracker job
+       or editing a Production Schedule activity:
+
+       Root cause found: ptSaveJob() looks up the currently-open year
+       via `ptYearId`. If `ptYearId` becomes null/invalid while the
+       "New Project" modal is still open (e.g. user clicks elsewhere,
+       a sync-prompt dialog steals focus, etc.), ptSaveJob() silently
+       `return`s on its very first line - the new job is never added
+       to `ptYears` and `ptSave()` is never even called. The modal
+       still closes normally and the UI re-renders, so nothing in the
+       screen looks wrong until the next refresh, when the job (and
+       any Activity Status change made the same way) is simply gone.
+
+       This patch adds three layers of protection, without touching
+       any of the original save logic:
+         1) Capture a known-good ptYearId the moment the New Project
+            modal opens, so it can be recovered later even if the
+            live variable gets cleared mid-edit.
+         2) Right before ptSaveJob() runs, if ptYearId is missing or
+            no longer points at a real year, restore it from the
+            captured value. If recovery is impossible, stop and alert
+            the user loudly instead of losing the job silently.
+         3) After every ptSave()/schSave() call, verify the write
+            actually landed in localStorage (re-read + compare record
+            count for new-record saves). If it didn't, or if the
+            underlying function throws, show a visible alert so the
+            user knows immediately and can retry, instead of finding
+            out only after a refresh.
+    ============================================================ */
+
+    window.__piCapturedYearId = null;
+
+    // ---- 1) Capture ptYearId at the moment "New Project" opens ----
+    if(typeof window.ptJobModal === 'function'){
+      var _piOrigPtJobModal = window.ptJobModal;
+      window.ptJobModal = function(id){
+        try{
+          if(typeof ptYearId !== 'undefined' && ptYearId){
+            window.__piCapturedYearId = ptYearId;
+          }
+        }catch(e){}
+        return _piOrigPtJobModal(id);
+      };
+    }
+
+    // ---- 2) Recover ptYearId + verify the save actually landed ----
+    if(typeof window.ptSaveJob === 'function'){
+      var _piOrigPtSaveJob = window.ptSaveJob;
+      window.ptSaveJob = function(id){
+        var wasNew = !id;
+
+        // Recover a missing/invalid ptYearId before attempting to save
+        try{
+          var yearIsValid = typeof ptYearId !== 'undefined' && ptYearId &&
+            Array.isArray(ptYears) && ptYears.some(function(x){ return x.id === ptYearId; });
+          if(!yearIsValid){
+            var recovered = window.__piCapturedYearId &&
+              ptYears.some(function(x){ return x.id === window.__piCapturedYearId; });
+            if(recovered){
+              ptYearId = window.__piCapturedYearId;
+              console.warn('PI save-integrity: ptYearId was lost, recovered automatically before saving.');
+            } else {
+              alert('⚠️ Save failed: could not determine which year this job belongs to.\n\nNothing was saved. Please close this window, reopen the correct Year in Project Tracker, and try again.');
+              return;
+            }
+          }
+        }catch(e){
+          console.warn('PI save-integrity: year recovery check failed', e);
+        }
+
+        // Snapshot job count in this year BEFORE saving (for new-record verification)
+        var beforeCount = null;
+        try{
+          var raw0 = localStorage.getItem('pi_tracker_years_v1');
+          var parsed0 = raw0 ? JSON.parse(raw0) : [];
+          var y0 = parsed0.find(function(x){ return x.id === ptYearId; });
+          beforeCount = y0 ? (y0.jobs || []).length : 0;
+        }catch(e){}
+
+        // Run the real save, catching any thrown error instead of letting it fail silently
+        try{
+          _piOrigPtSaveJob(id);
+        }catch(err){
+          console.error('PI save-integrity: ptSaveJob threw an error', err);
+          alert('⚠️ An error occurred while saving this job. It was NOT saved.\n\n' + (err && err.message ? err.message : err));
+          return;
+        }
+
+        // Verify the save actually landed in localStorage
+        try{
+          var raw1 = localStorage.getItem('pi_tracker_years_v1');
+          var parsed1 = raw1 ? JSON.parse(raw1) : [];
+          var y1 = parsed1.find(function(x){ return x.id === ptYearId; });
+          var afterCount = y1 ? (y1.jobs || []).length : 0;
+          if(wasNew && beforeCount !== null && afterCount <= beforeCount){
+            alert('⚠️ Warning: this new project does not appear to have been saved to storage.\n\nPlease check Project Tracker after refreshing the page. If it is missing, re-add it.');
+          }
+        }catch(e){
+          console.warn('PI save-integrity: post-save verification failed', e);
+        }
+      };
+    }
+
+    // ---- 3) Same error/verify safety net for Production Schedule saves ----
+    function piWrapScheduleSave(fnName, storageKey){
+      if(typeof window[fnName] !== 'function') return;
+      var orig = window[fnName];
+      window[fnName] = function(){
+        var beforeRaw = null;
+        try{ beforeRaw = localStorage.getItem(storageKey); }catch(e){}
+
+        try{
+          orig.apply(this, arguments);
+        }catch(err){
+          console.error('PI save-integrity: ' + fnName + ' threw an error', err);
+          alert('⚠️ An error occurred while saving. Your latest change to Production Schedule was NOT saved.\n\n' + (err && err.message ? err.message : err));
+          return;
+        }
+
+        try{
+          var afterRaw = localStorage.getItem(storageKey);
+          if(afterRaw === null){
+            alert('⚠️ Warning: Production Schedule data may not have saved correctly. Please verify your change after refreshing.');
+          } else if(beforeRaw !== null && afterRaw === beforeRaw){
+            // No change written at all even though a save was triggered - only warn,
+            // since "no change" can also legitimately mean nothing was edited.
+            console.warn('PI save-integrity: ' + fnName + ' ran but localStorage content did not change.');
+          }
+        }catch(e){
+          console.warn('PI save-integrity: post-save verification failed for ' + fnName, e);
+        }
+      };
+    }
+    piWrapScheduleSave('schSave', 'pi_schedule_projects_v1');
+
+    console.log('PI save-integrity patch loaded successfully.');
+
+  }catch(e){
+    console.warn('PI save-integrity patch failed to initialize', e);
+  }
+})();
+</script>
 </body></html>
