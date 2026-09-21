@@ -4605,7 +4605,7 @@ html.dark .pi-summary-note div{color:#d7dbe3}
   // overwritten by stale data from another device (or from before the debounced
   // push had a chance to fire), which is exactly what caused Dark Mode to keep
   // reverting to Light Mode after switching tabs/apps and back.
-  var LOCAL_ONLY_KEYS = ['pi_dark', 'pi_sidebar_hidden'];
+  var LOCAL_ONLY_KEYS = ['pi_dark', 'pi_sidebar_hidden', 'pi_last_synced_snapshot'];
 
   var SUPABASE_URL      = 'https://pwqtcyqhimaududzvmst.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_1NQ4jjL3Do1yNkG43kms3g_OInKEuyL';
@@ -4740,13 +4740,44 @@ html.dark .pi-summary-note div{color:#d7dbe3}
   // path (flushPendingPush(), fired when the tab regains visibility). Always
   // returns a Promise so callers can wait for it to finish before doing
   // anything else (like pulling remote data for comparison).
+  // Shows a hard-to-miss, one-time-per-session warning when a push to the
+  // cloud fails, so the user knows their edits are NOT being backed up
+  // remotely (even though they remain perfectly safe locally). Previously
+  // a failed push only showed a small, easy-to-miss badge in the corner —
+  // the user had no real way of knowing sync was broken until data
+  // mysteriously "disappeared" after a refresh on another device/session.
+  function piWarnPushFailure(err) {
+    try {
+      if (sessionStorage.getItem('pi_sync_fail_warned')) return;
+      sessionStorage.setItem('pi_sync_fail_warned', '1');
+      var msg = 'Cloud sync is currently failing, so your latest changes are NOT being backed up online right now.\n\n'
+        + 'Good news: everything you do is still being saved normally on THIS device/browser, so nothing is lost as long as you keep using this same browser.\n\n'
+        + 'What to check:\n'
+        + '1) Your internet connection.\n'
+        + '2) That the Supabase project has not been paused.\n'
+        + '3) That this site\'s URL is allowed in Supabase CORS settings.\n\n'
+        + (err && err.message ? ('Technical detail: ' + err.message) : '');
+      if (typeof window.piAlert === 'function') window.piAlert(msg);
+      else window.alert(msg);
+    } catch (e) { console.warn('[sync] failed to show push-failure warning', e); }
+  }
+
+  // The actual network push, shared by both the debounced auto-save path
+  // (push(), fired via schedulePush()'s setTimeout) and the immediate flush
+  // path (flushPendingPush(), fired when the tab regains visibility). Always
+  // returns a Promise so callers can wait for it to finish before doing
+  // anything else (like pulling remote data for comparison).
   function doPush() {
     if (!ready) return Promise.resolve();
     badge('Saving...', 'idle');
+    // Captured BEFORE the network call, so the "last synced" marker saved on
+    // success reflects exactly what was actually sent to the cloud — not
+    // whatever local data happens to exist by the time the response arrives.
+    var pushedSnapshot = snapshot();
     return sb.auth.getUser().then(function (u) {
       return sb.from('app_state').upsert({
         id: STATE_ID,
-        data: snapshot(),
+        data: pushedSnapshot,
         updated_at: new Date().toISOString(),
         updated_by: u && u.data && u.data.user ? u.data.user.email : null
       });
@@ -4754,10 +4785,22 @@ html.dark .pi-summary-note div{color:#d7dbe3}
       if (res && res.error) {
         console.error('[sync] push failed', res.error);
         badge('Sync error', 'err');
+        piWarnPushFailure(res.error);
       } else {
         console.log('[sync] saved');
         badge('Synced', 'ok');
+        // Record exactly what was just successfully pushed. This is the
+        // baseline used later (in start() and the visibilitychange handler)
+        // to tell apart "local is stale, safe to overwrite with remote" from
+        // "local has real edits that were never confirmed pushed — do NOT
+        // overwrite them with a pull". Stored under a LOCAL_ONLY key so it
+        // is itself never pushed/pulled/cleared by the sync process.
+        try { localStorage.setItem('pi_last_synced_snapshot', JSON.stringify(pushedSnapshot)); } catch (e) {}
       }
+    }).catch(function (err) {
+      console.error('[sync] push threw', err);
+      badge('Sync error', 'err');
+      piWarnPushFailure(err);
     });
   }
 
@@ -4789,12 +4832,36 @@ html.dark .pi-summary-note div{color:#d7dbe3}
         var local  = JSON.stringify(snapshot());
         ready = true;
         if (remote !== local) {
-          applySnapshot(res.data.data);
-          if (!sessionStorage.getItem('pi_reloaded')) {
-            sessionStorage.setItem('pi_reloaded', '1');
-            location.reload();
-            return;
+          // ROOT CAUSE FIX: previously this ALWAYS trusted the cloud copy and
+          // blindly overwrote local data whenever the two differed — even if
+          // the difference was because THIS device has newer local edits that
+          // a previous push never managed to send (e.g. blocked by CORS/RLS,
+          // offline, Supabase project paused, etc). That silently destroyed
+          // brand-new Project Tracker jobs / Schedule status changes on the
+          // very next refresh, which is exactly the bug reported.
+          // Now: only trust the cloud copy as authoritative if our local data
+          // still matches the last snapshot we KNOW was successfully pushed.
+          // If local has diverged from that baseline, it means there are real
+          // local edits that were never confirmed synced — so keep them and
+          // retry pushing instead of throwing them away.
+          var lastSynced = null;
+          try { lastSynced = localStorage.getItem('pi_last_synced_snapshot'); } catch (e) {}
+          var safeToOverwrite = (lastSynced === null) || (lastSynced === local);
+          if (safeToOverwrite) {
+            applySnapshot(res.data.data);
+            try { localStorage.setItem('pi_last_synced_snapshot', remote); } catch (e) {}
+            if (!sessionStorage.getItem('pi_reloaded')) {
+              sessionStorage.setItem('pi_reloaded', '1');
+              location.reload();
+              return;
+            }
+          } else {
+            console.warn('[sync] Local data has unsynced changes that differ from the cloud copy — keeping local data and re-pushing instead of overwriting it.');
+            badge('Unsynced changes', 'err');
+            push();
           }
+        } else {
+          try { localStorage.setItem('pi_last_synced_snapshot', local); } catch (e) {}
         }
         badge('Synced', 'ok');
       }
@@ -4837,13 +4904,30 @@ html.dark .pi-summary-note div{color:#d7dbe3}
         return sb.from('app_state').select('data').eq('id', STATE_ID).maybeSingle();
       }).then(function (r) {
         if (!r || r.error || !r.data) return;
-        if (JSON.stringify(r.data.data || {}) !== JSON.stringify(snapshot())) {
-          applySnapshot(r.data.data);
-          // Guard against reload loops the same way start() does — if this
-          // tab already force-reloaded once this session, don't do it again.
-          if (!sessionStorage.getItem('pi_reloaded')) {
-            sessionStorage.setItem('pi_reloaded', '1');
-            location.reload();
+        var remoteStr = JSON.stringify(r.data.data || {});
+        var localStr = JSON.stringify(snapshot());
+        if (remoteStr !== localStr) {
+          // Same data-safety check as start() above: only let a pull
+          // overwrite local data when local is known to already match the
+          // last successfully pushed snapshot. Otherwise this device has
+          // local edits that were never confirmed synced — keep them and
+          // retry pushing instead of silently destroying them on tab focus.
+          var lastSynced = null;
+          try { lastSynced = localStorage.getItem('pi_last_synced_snapshot'); } catch (e) {}
+          var safeToOverwrite = (lastSynced === null) || (lastSynced === localStr);
+          if (safeToOverwrite) {
+            applySnapshot(r.data.data);
+            try { localStorage.setItem('pi_last_synced_snapshot', remoteStr); } catch (e) {}
+            // Guard against reload loops the same way start() does — if this
+            // tab already force-reloaded once this session, don't do it again.
+            if (!sessionStorage.getItem('pi_reloaded')) {
+              sessionStorage.setItem('pi_reloaded', '1');
+              location.reload();
+            }
+          } else {
+            console.warn('[sync] Local data has unsynced changes that differ from the cloud copy (tab focus check) — keeping local data and re-pushing instead of overwriting it.');
+            badge('Unsynced changes', 'err');
+            push();
           }
         }
       });
