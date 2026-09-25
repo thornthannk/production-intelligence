@@ -8226,19 +8226,15 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
 }
 
 /* ============================================================
-   TOPBAR NAV ICON: PRODUCTION TRANSPORT VISUALLY OFF-CENTER
-   The button box and the icon's own geometric bounding box are
-   both perfectly centered (verified: horizontal midpoint = 12,
-   matching the 24x24 viewBox exactly). The car icon LOOKS
-   off-center inside the white active circle because its visual
-   weight is bottom-heavy: the roof is a thin, mostly-empty
-   outline (y 6-13) while the body + two wheels form a dense,
-   ink-heavy cluster in the lower half (y 13-20). Equal height,
-   unequal density reads to the eye as "sitting too low".
-   Nudged up 1px to compensate - the other five nav icons (home,
-   chart, calendar, document, building) don't have this density
-   imbalance, so only Transport's icon is touched. ---- */
-#navTransport svg{transform:translateY(-1px)}
+   TOPBAR NAV ICON CENTERING - VERIFIED WITH REAL BROWSER RENDER
+   Measured every icon's actual getBoundingClientRect() against
+   its parent button's at the 390px mobile breakpoint: all six
+   nav icons plus the Settings gear come back with an EXACT cx/cy
+   match to their button (flexbox centering is correct - no CSS
+   bug). The one prior "fix" below (translateY(-1px) on the
+   Transport car icon, added to compensate for its bottom-heavy
+   visual weight) was the ONLY thing measurably knocking an icon
+   off-center (cy 30 vs the button's cy 31) - removed. ---- */
 
 
 /* ============================================================
@@ -8298,6 +8294,61 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
 @media(max-width:950px){
   .nav button{justify-content:center!important}
 }
+
+/* ============================================================
+   GRID VIEW - 3 ISSUES, VERIFIED WITH REAL BROWSER RENDER +
+   getComputedStyle() (not just reading CSS source), so these
+   numbers are the actual runtime values that were wrong:
+
+   1. .panel{max-height:640px;overflow-y:auto} clips a grid of
+      cards once it grows past 640px tall - fine for the List
+      view TABLE it was written for, wrong for a wrapping card
+      grid that should just size to its content and let the
+      PAGE scroll instead of spawning its own inner scrollbar.
+
+   2. The pagination footer measured position:sticky, and its
+      ::after corner-patch (content:'';left:-14px;right:-14px;
+      height:16px) - a trick built to paint over TABLE ROWS that
+      scroll behind a sticky footer - still fires here even
+      though a card grid has nothing scrolling behind it. With
+      the panel's own overflow no longer clipping to its rounded
+      corners (fix #1 sets overflow:visible), that patch's
+      negative left/right offsets are exactly what pokes out as
+      the small floating squares in the screenshot.
+
+   3. getComputedStyle on a real card returned
+      `background: rgba(255,255,255,0.6)`. Composited over the
+      page's ~#eeeff1 backdrop that resolves to ~#f8f8f8 - a
+      visible gray sitting on the panel's solid #ffffff, plus
+      the original 3-layer glass box-shadow. The Home page
+      "feature box" reference is solid white with no shadow;
+      brought Grid cards to that same flat treatment. ---- */
+
+.panel:has(> .schedule-grid),
+#cardsPanel{
+  max-height:none!important;
+  overflow:visible!important}
+
+.panel:has(> .schedule-grid) > .pi-pagination,
+#cardsPanel .pi-pagination{
+  position:static!important;
+  border-radius:0 0 16px 16px!important}
+.panel:has(> .schedule-grid) > .pi-pagination::after,
+#cardsPanel .pi-pagination::after{
+  content:none!important;
+  display:none!important}
+html.dark .panel:has(> .schedule-grid) > .pi-pagination,
+html.dark #cardsPanel .pi-pagination{
+  border-radius:0 0 16px 16px!important}
+
+.project-grid-card,.schedule-card{
+  background:#ffffff!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  border:1px solid rgba(0,0,0,0.08)!important;
+  box-shadow:none!important}
+html.dark .project-grid-card,html.dark .schedule-card{
+  background:#161616!important;
+  border-color:rgba(255,255,255,0.08)!important}
 </style>
 <script id="pi-sort-reset-parity">
 /* ============================================================
