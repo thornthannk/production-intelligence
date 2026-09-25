@@ -547,7 +547,7 @@ function factSortBy(field){if(factSortState.field===field){factSortState.dir=fac
 function factSortReset(){factSortState={field:null,dir:'asc'}}
 function updateFactSortIndicators(){['title','product','company','productionCompany','deliveryDate','airingDate','talentStatus'].forEach(function(f){var el=document.getElementById('sortIc-'+f);if(!el)return;el.textContent=factSortState.field===f?(factSortState.dir==='asc'?'\u25B2':'\u25BC'):''})}
 function sortProjects(list,mode){var arr=list.slice();var cmpDate=function(a,b){return String(a||'').localeCompare(String(b||''))};if(mode==='airing-asc')arr.sort(function(a,b){return cmpDate(a.airingDate,b.airingDate)});else if(mode==='airing-desc')arr.sort(function(a,b){return cmpDate(b.airingDate,a.airingDate)});else if(mode==='delivery-asc')arr.sort(function(a,b){return cmpDate(a.deliveryDate,b.deliveryDate)});else if(mode==='delivery-desc')arr.sort(function(a,b){return cmpDate(b.deliveryDate,a.deliveryDate)});else if(mode==='title-asc')arr.sort(function(a,b){return String(a.title||'').localeCompare(String(b.title||''))});else if(mode==='title-desc')arr.sort(function(a,b){return String(b.title||'').localeCompare(String(a.title||''))});return arr}
-function renderDashboard(){let q=document.getElementById('search').value.toLowerCase(),product=document.getElementById('productFilter').value,status=document.getElementById('statusFilter').value;let list=projects.filter(p=>(p.title+' '+p.product+' '+p.company+' '+p.agency).toLowerCase().includes(q)&&(!product||p.product===product)&&(!status||talentStatusOf(p)===status));let sortMode=(document.getElementById('sortFilter')||{}).value||'default';if(factSortState.field){let sf=factSortState.field;list=list.slice().sort(function(a,b){var va,vb;if(sf==='talentStatus'){va=talentStatusOf(a);vb=talentStatusOf(b)}else{va=a[sf];vb=b[sf]}return piCmp(va,vb,factSortState.dir)})}else{list=sortProjects(list,sortMode)}updateFactSortIndicators();window.piFactPage=window.piFactPage||1;var piFsPg=(typeof piPaginate==='function')?piPaginate(list,window.piFactPage,10):{items:list,page:1,pages:1,total:list.length,start:list.length?1:0,end:list.length};document.getElementById('count').textContent=list.length+' production'+(list.length===1?'':'s');document.getElementById('tbody').innerHTML=piFsPg.items.length?piFsPg.items.map(p=>{let dtx=talentDaysToExpiry(p),badge=talentStatusOf(p)==='Expiring Soon'?` <span class="mini-badge">${dtx}d</span>`:'';return `<tr onclick="openProject('${p.id}')"><td><b>${esc(p.product)}</b></td><td>${esc(p.title)}</td><td>${esc(p.company)}</td><td>${esc(p.productionCompany||'—')}</td><td>${fmt(p.deliveryDate)}</td><td>${fmt(p.airingDate)}</td><td><span class="pill ${talentStatusClass(p)}">${talentStatusOf(p)}</span>${badge}</td><td><div class="rowactions"><button class="smallbtn pdfbtn icobtn" title="Export PDF" onclick="event.stopPropagation();exportProjectPDF('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg></button><button class="smallbtn editbtn icobtn" title="Edit" onclick="event.stopPropagation();openProjectModal('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="smallbtn delete icobtn" title="Delete" onclick="event.stopPropagation();deleteProject('${p.id}')"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></div></td></tr>`}).join(''):`<tr><td colspan="8" class="empty">No projects match the selected filters</td></tr>`;document.getElementById('cards').innerHTML=piFsPg.items.map(p=>`<article class="card project-grid-card" onclick="openProject('${p.id}')"><div class="grid-card-top"><span class="eyebrow">${esc(p.product)}</span><span class="pill ${talentStatusClass(p)}">${talentStatusOf(p)}</span></div><h3>${esc(p.title)}</h3><div class="sub">${esc(p.company)}</div><div class="grid-card-details"><div><span>Delivery</span><strong>${fmt(p.deliveryDate)}</strong></div><div><span>Airing</span><strong>${fmt(p.airingDate)}</strong></div><div><span>Director</span><strong>${esc(p.director||'—')}</strong></div><div><span>Production</span><strong>${esc(p.productionCompany||'—')}</strong></div></div><div class="rowactions"><button class="smallbtn pdfbtn icobtn" title="Export PDF" onclick="event.stopPropagation();exportProjectPDF('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg></button><button class="smallbtn editbtn icobtn" title="Edit" onclick="event.stopPropagation();openProjectModal('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="smallbtn delete icobtn" title="Delete" onclick="event.stopPropagation();deleteProject('${p.id}')"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button><button class="action" style="margin-left:auto" onclick="event.stopPropagation();openProject('${p.id}')">Open →</button></div></article>`).join('');const activeCount=projects.reduce((n,p)=>n+(talentStatusOf(p)==='Active'?1:0),0);const expiringCount=projects.reduce((n,p)=>n+(talentStatusOf(p)==='Expiring Soon'?1:0),0);const expiredCount=projects.reduce((n,p)=>n+(talentStatusOf(p)==='Expired'?1:0),0);document.getElementById('kTotal').textContent=projects.length;document.getElementById('kDelivered').textContent=activeCount;document.getElementById('kUpcoming').textContent=expiringCount;document.getElementById('kExpired').textContent=expiredCount;var eu=document.getElementById('kpiExpiring');if(eu){eu.classList.toggle('kpi-warn',expiringCount>0);eu.classList.toggle('kpi-good',expiringCount===0)}var ex=document.getElementById('kpiExpired');if(ex){ex.classList.toggle('kpi-bad',expiredCount>0);ex.classList.toggle('kpi-good',expiredCount===0)}
+function renderDashboard(){let q=document.getElementById('search').value.toLowerCase(),product=document.getElementById('productFilter').value,status=document.getElementById('statusFilter').value;let list=projects.filter(p=>(p.title+' '+p.product+' '+p.company+' '+p.agency).toLowerCase().includes(q)&&(!product||p.product===product)&&(!status||talentStatusOf(p)===status));let sortMode=(document.getElementById('sortFilter')||{}).value||'default';if(factSortState.field){let sf=factSortState.field;list=list.slice().sort(function(a,b){var va,vb;if(sf==='talentStatus'){va=talentStatusOf(a);vb=talentStatusOf(b)}else{va=a[sf];vb=b[sf]}return piCmp(va,vb,factSortState.dir)})}else{list=sortProjects(list,sortMode)}updateFactSortIndicators();window.piFactPage=window.piFactPage||1;var piFsPg=(typeof piPaginate==='function')?piPaginate(list,window.piFactPage,10):{items:list,page:1,pages:1,total:list.length,start:list.length?1:0,end:list.length};document.getElementById('count').textContent=list.length+' production'+(list.length===1?'':'s');document.getElementById('tbody').innerHTML=piFsPg.items.length?piFsPg.items.map(p=>{let dtx=talentDaysToExpiry(p),badge=talentStatusOf(p)==='Expiring Soon'?` <span class="mini-badge">${dtx}d</span>`:'';return `<tr onclick="openProject('${p.id}')"><td><b>${esc(p.product)}</b></td><td>${esc(p.title)}</td><td>${esc(p.company)}</td><td>${esc(p.productionCompany||'—')}</td><td>${fmt(p.deliveryDate)}</td><td>${fmt(p.airingDate)}</td><td><span class="pill ${talentStatusClass(p)}">${talentStatusOf(p)}</span>${badge}</td><td><div class="rowactions"><button class="smallbtn pdfbtn icobtn" title="Export PDF" onclick="event.stopPropagation();exportProjectPDF('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg></button><button class="smallbtn editbtn icobtn" title="Edit" onclick="event.stopPropagation();openProjectModal('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="smallbtn delete icobtn" title="Delete" onclick="event.stopPropagation();deleteProject('${p.id}')"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button></div></td></tr>`}).join(''):`<tr><td colspan="8" class="empty">No projects match the selected filters</td></tr>`;document.getElementById('cards').innerHTML=piFsPg.items.map(p=>`<article class="card project-grid-card" onclick="openProject('${p.id}')"><div class="grid-card-top"><h3>${esc([p.product,p.title].map(s=>String(s||'').trim()).filter(Boolean).join(' '))}</h3><span class="pill ${talentStatusClass(p)}">${talentStatusOf(p)}</span></div><div class="sub">${esc(p.company)}</div><div class="grid-card-details"><div><span>Delivery</span><strong>${fmt(p.deliveryDate)}</strong></div><div><span>Airing</span><strong>${fmt(p.airingDate)}</strong></div><div><span>Director</span><strong>${esc(p.director||'—')}</strong></div><div><span>Production</span><strong>${esc(p.productionCompany||'—')}</strong></div></div><div class="rowactions"><button class="smallbtn pdfbtn icobtn" title="Export PDF" onclick="event.stopPropagation();exportProjectPDF('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg></button><button class="smallbtn editbtn icobtn" title="Edit" onclick="event.stopPropagation();openProjectModal('${p.id}')"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="smallbtn delete icobtn" title="Delete" onclick="event.stopPropagation();deleteProject('${p.id}')"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg></button><button class="action" style="margin-left:auto" onclick="event.stopPropagation();openProject('${p.id}')">Open →</button></div></article>`).join('');const activeCount=projects.reduce((n,p)=>n+(talentStatusOf(p)==='Active'?1:0),0);const expiringCount=projects.reduce((n,p)=>n+(talentStatusOf(p)==='Expiring Soon'?1:0),0);const expiredCount=projects.reduce((n,p)=>n+(talentStatusOf(p)==='Expired'?1:0),0);document.getElementById('kTotal').textContent=projects.length;document.getElementById('kDelivered').textContent=activeCount;document.getElementById('kUpcoming').textContent=expiringCount;document.getElementById('kExpired').textContent=expiredCount;var eu=document.getElementById('kpiExpiring');if(eu){eu.classList.toggle('kpi-warn',expiringCount>0);eu.classList.toggle('kpi-good',expiringCount===0)}var ex=document.getElementById('kpiExpired');if(ex){ex.classList.toggle('kpi-bad',expiredCount>0);ex.classList.toggle('kpi-good',expiredCount===0)}
   /* FIX #5 (CORRECTED): Fact Sheet is the only feature where List and
      Grid are two PERSISTENT DOM nodes toggled via style.display, rather
      than being fully re-rendered from a template string on every call
@@ -7974,7 +7974,7 @@ html.dark .pt-link-row .pt-link-row{
   .pi-pagination{position:static!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 
   /* Cards no longer forced to a desktop min-height */
-  .project-grid-card,.schedule-card{min-height:0!important}
+  .project-grid-card,.schedule-card{min-height:300px!important}
 
   /* ---- 4b. TIMELINE PANNING ----
      .timeline-inner is 980px wide on purpose (the bars are
@@ -8349,6 +8349,186 @@ html.dark #cardsPanel .pi-pagination{
 html.dark .project-grid-card,html.dark .schedule-card{
   background:#161616!important;
   border-color:rgba(255,255,255,0.08)!important}
+
+/* ============================================================
+   GRID VIEW ROUND 4 - 4 issues, root causes confirmed via
+   getBoundingClientRect() on a real render (not guessed):
+
+   1+3. FOOTER "CHIPPED" BORDER + LAST ROW TOUCHING FOOTER
+   Measured: .panel has padding: 8px 12px 12px. Both
+   .schedule-grid and .pi-pagination are DIRECT CHILDREN of that
+   padded box, so the footer bar's own edges sit 12px INSET from
+   the panel's actual left/right/bottom border on every side.
+   That produces a smaller rounded rectangle (the footer, with
+   its own bottom-16px corners) floating just inside a larger
+   rounded rectangle (the panel) - two close, near-parallel
+   rounded borders 12px apart read as a broken/notched edge,
+   exactly the "ขาดแหว่ง" look reported. The same zero gap between
+   .schedule-grid's bottom and the footer's top border is what
+   made the last card row feel like it touches the footer line.
+   Fixed by pulling the footer flush to the panel's real edges
+   (negative margins cancelling the inherited padding) and adding
+   breathing room above it instead.
+
+   2. FACT SHEET CARD (JS template already updated separately):
+   product+title merged into one single-line h3, pill moved to
+   sit inline on the right via the existing grid-card-top flex
+   row - CSS below makes that row lay out correctly (title grows
+   and truncates, pill stays fixed-width on the right).
+
+   4. EXACTLY 4 CARDS PER ROW, NOT SHRUNK TOO FAR
+   auto-fill/minmax(320px,1fr) lets the column count drift with
+   window width (3, 4 or 5 depending on the exact viewport) - not
+   a firm 4-up layout. Locked to a real 4-column track on desktop
+   (>=951px, matching the app's existing desktop breakpoint), 2
+   columns on tablet, 1 on phone. Card padding/type-scale set to
+   a comfortable middle ground - smaller than the original
+   20px/21px/310px-tall cards, but noticeably bigger than the
+   over-compressed 14px/15px pass from the previous round. ---- */
+
+/* ---- ROUND 5 FIX: the negative-margin flush technique
+   (margin:16px -12px -12px) assumed EVERY panel that wraps a
+   card grid has the same 12px left/right padding. Measured with
+   real getBoundingClientRect(): Tracker/Schedule/Transport's
+   shared `.panel` does (8px 12px 12px), but Fact Sheet's
+   #cardsPanel does NOT - it only has 2px side padding. The
+   hardcoded -12px margin over-corrected by 10px on each side
+   there, pushing the footer visibly past the right edge -
+   exactly the "footer breaks out of the frame" bug reported.
+   Rather than hardcode a second magic number for #cardsPanel
+   (fragile the same way), the padding is moved OFF the panel
+   entirely and ONTO the grid itself. The panel's padding-box
+   and border-box become the same box, so .pi-pagination (a
+   plain 100%-wide child) is flush automatically, with no
+   negative-margin arithmetic needed for ANY panel width. ---- */
+.panel:has(> .schedule-grid),
+#cardsPanel,
+#trackerApp .panel:has(> .schedule-grid),
+#scheduleApp .panel:has(> .schedule-grid),
+#transportListWrap .panel:has(> .schedule-grid),
+#tablePanel:has(> .schedule-grid){
+  padding:0!important}
+.panel:has(> .schedule-grid) > .schedule-grid,
+#cardsPanel > .cards{
+  padding:16px 16px 4px!important}
+.panel:has(> .schedule-grid) > .pi-pagination,
+#cardsPanel .pi-pagination{
+  width:100%!important;
+  margin:16px 0 0!important}
+
+/* ---- COLUMNS ACTUALLY UNEQUAL DESPITE "repeat(4,1fr)" ----
+   Verified via CSSOM: this exact rule IS the one winning the
+   cascade (no other rule targets #cards's grid-template-columns
+   at this specificity), yet the computed value came back as
+   four DIFFERENT pixel widths (e.g. 447.7 / 392.1 / 337 / 339.3).
+   Root cause is a CSS Grid spec detail, not a specificity bug:
+   a bare `1fr` track's automatic MINIMUM size is not 0 - it
+   defaults to the track's max-content size across every item
+   placed in it (grid-auto-flow:row cycles items 0,4,8.. into
+   column 1, 1,5,9.. into column 2, etc, so a single long
+   untruncated title anywhere in a column can force that whole
+   column wider "auto" is the resolved keyword here). Whichever
+   column happened to contain the widest content grabbed extra
+   space first, starving the others - which is exactly why the
+   4th (rightmost) card kept clipping past the panel/viewport
+   edge in the screenshot. `minmax(0,1fr)` overrides that
+   automatic minimum down to 0, so all four tracks are always
+   split perfectly evenly regardless of content length. ---- */
+@media(min-width:951px){
+  .schedule-grid,.cards{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:18px!important}
+}
+@media(max-width:950px) and (min-width:701px){
+  .schedule-grid,.cards{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:16px!important}
+}
+@media(max-width:700px){
+  .schedule-grid,.cards{
+    grid-template-columns:1fr!important;
+    gap:14px!important}
+}
+
+/* ---- Issue #2: cards read as cramped at the previous pass's
+   sizing. Sized up a full notch, AND given a shared min-height
+   (see the dedicated "LOCK GRID CARD HEIGHT" rule further below,
+   which supersedes the min-height:0 this block originally shipped
+   with - that value was a leftover from before card heights were
+   unified and was winning the cascade over the later fix purely
+   by appearing after it in the file, despite identical
+   specificity and !important weight on both sides). ---- */
+.project-grid-card,.schedule-card{
+  padding:24px!important;
+  border-radius:14px!important}
+
+.project-grid-card h3,.schedule-card h3{
+  font-size:19px!important;
+  margin:12px 0 5px!important}
+
+.project-grid-card .sub,.schedule-card .sub{
+  min-height:0!important;
+  font-size:12.5px!important}
+
+.grid-card-top{gap:10px!important}
+.grid-card-top h3{
+  margin:0!important;
+  flex:1 1 auto!important;
+  min-width:0!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important}
+.grid-card-top .pill{flex:none!important}
+
+.project-grid-card .grid-card-details,.schedule-card .grid-card-details{
+  gap:18px 22px!important;
+  margin-top:18px!important;
+  padding-top:16px!important}
+.grid-card-details span{
+  font-size:9px!important;
+  margin-bottom:5px!important}
+.grid-card-details strong{
+  font-size:13.5px!important}
+
+.project-grid-card .rowactions,.schedule-card .rowactions{
+  padding-top:16px!important}
+
+.status-chip{
+  padding:5px 10px!important;
+  font-size:10px!important}
+
+/* ============================================================
+   FOOTER ACTUALLY OVERFLOWING THE PANEL - REAL ROOT CAUSE
+   Every previous pass in this file measured the footer's
+   POSITION with getBoundingClientRect() and found it flush with
+   the panel (off by 1px, pure rounding) - which is true, but
+   irrelevant to this bug. getBoundingClientRect() reports the
+   element's OWN BOX, and box-shadow paints OUTSIDE that box
+   without affecting it or being detectable by that measurement.
+   Two pre-existing rules apply exactly that kind of box-shadow
+   to `.pi-pagination`:
+     box-shadow:0 -10px 0 0 <color>, -14px 0 0 0 <color>,
+                14px 0 0 0 <color>, 0 14px 0 0 <color> !important
+   Four solid-colour shadows with zero blur, offset up/left/
+   right/down by 10-14px - a "patch" trick whose sole purpose was
+   hiding TABLE ROWS that scroll behind the sticky footer in List
+   view. It has no scrolling content to hide in Grid view (the
+   panel is not a scroll container there), so the same patch
+   simply paints as a solid rectangle floating 10-14px past the
+   panel's actual edge on all four sides - exactly the "block
+   sticking out past the frame" in the screenshus. Neutralised
+   here ONLY for the Grid-view panel wrapper (`:has(> .schedule-
+   grid)` / `#cardsPanel`); List view's sticky-footer-over-a-
+   scrolling-table use case is untouched. Selector specificity
+   (3-4 classes / 1 ID) intentionally set higher than every prior
+   `!important` box-shadow rule on `.pi-pagination` so this wins
+   regardless of source order. ---- */
+.panel:has(> .schedule-grid) > .pi-pagination,
+#cardsPanel .pi-pagination{
+  box-shadow:none!important}
+html.dark .panel:has(> .schedule-grid) > .pi-pagination,
+html.dark #cardsPanel .pi-pagination{
+  box-shadow:none!important}
 </style>
 <script id="pi-sort-reset-parity">
 /* ============================================================
@@ -8438,4 +8618,28 @@ html.dark .project-grid-card,html.dark .schedule-card{
 
 })();
 </script>
+<style>
+/* ============================================================
+   GRID VIEW CARDS: HOVER RING TO MATCH LIST VIEW ROWS
+   List view rows highlight on hover with an inset border ring:
+     box-shadow: inset 0 0 0 1.5px <ink-color> !important
+   (see `.table tbody tr:hover` / `.schedule-table tbody tr:hover`).
+   Grid view's `.project-grid-card` / `.schedule-card` had no
+   hover state at all - moving the mouse over a card gave zero
+   visual feedback, unlike every row in List view. Applied the
+   SAME ring colour/weight here for parity. List view also shifts
+   the row sideways (translateX) on hover, which reads naturally
+   inside a single-column table; that doesn't translate well to a
+   multi-column grid (it would visually crowd the next card), so
+   a small upward lift (translateY) is used instead - same "this
+   is interactive" feedback, adapted to the grid layout. ---- */
+.project-grid-card,.schedule-card{
+  cursor:pointer!important;
+  transition:box-shadow .15s ease,transform .15s ease!important}
+.project-grid-card:hover,.schedule-card:hover{
+  box-shadow:inset 0 0 0 1.5px rgba(0,0,0,0.5)!important;
+  transform:translateY(-2px)!important}
+html.dark .project-grid-card:hover,html.dark .schedule-card:hover{
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,0.6)!important}
+</style>
 </body></html>
