@@ -8081,9 +8081,15 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
    The rail is built for a tall narrow column: position:sticky,
    height:100vh and overflow:hidden. Laid across the top of a
    phone that became a full-height panel with its contents
-   clipped, which is the broken strip in the screenshots.
-   Rebuilt as a wrapping flex bar: logo takes the whole first
-   line, the nav icons and the settings button share the second. */
+   clipped, which is the broken strip in earlier screenshots.
+
+   REVISED: previously the logo took its own full-width line and
+   the nav wrapped below it. Correct request is a single row -
+   logo pinned left, nav icons immediately after it - with the
+   Settings divider flipped from border-top (vertical rail) to
+   border-left (horizontal bar). The nav strip gets its own
+   horizontal scroll so it can never force the bar into a second
+   line or clip an icon on the narrowest phones. */
 @media(max-width:950px){
 
   .shell{grid-template-columns:1fr!important;padding-left:0!important}
@@ -8102,20 +8108,21 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
     pointer-events:auto!important;
     display:flex!important;
     flex-direction:row!important;
-    flex-wrap:wrap!important;
+    flex-wrap:nowrap!important;
     align-items:center!important;
-    justify-content:center!important;
+    justify-content:flex-start!important;
     gap:10px!important;
     padding:12px 14px!important;
     border-radius:0 0 20px 20px!important}
 
   .shell.sidebar-hidden{grid-template-columns:1fr!important}
 
-  /* Logo: own line, centred, at the top of the bar. */
+  /* Logo: pinned to the far left. flex:none so it keeps its
+     size and never gets squeezed by the icon strip next to it. */
   .pi-sidebar-logo{
-    flex:1 1 100%!important;
-    width:34px!important;height:34px!important;
-    margin:0 auto!important;
+    flex:none!important;
+    width:32px!important;height:32px!important;
+    margin:0!important;
     display:block!important}
 
   /* A topbar has nothing to collapse into, and hiding it would
@@ -8123,18 +8130,28 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
   .side-toggle-row,
   .sidebar-show-btn{display:none!important}
 
-  /* Nav icons: one horizontal row, centred, wrapping if needed. */
+  /* Nav icons: follow the logo on the SAME row. Given its own
+     horizontal scroll (hidden scrollbar) so if the six icons
+     ever don't fit next to the logo + Settings, the strip pans
+     sideways instead of wrapping to a second line or pushing
+     Settings off the edge. */
   .nav{
     flex:1 1 auto!important;
     display:flex!important;
     flex-direction:row!important;
-    flex-wrap:wrap!important;
-    justify-content:center!important;
+    flex-wrap:nowrap!important;
+    justify-content:flex-start!important;
     align-items:center!important;
     gap:8px!important;
     width:auto!important;
+    min-width:0!important;
     margin:0!important;
+    overflow-x:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    scrollbar-width:none!important;
+    -ms-overflow-style:none!important;
     grid-template-columns:none!important}
+  .nav::-webkit-scrollbar{display:none!important;width:0!important;height:0!important}
 
   .nav button{
     flex:none!important;
@@ -8143,7 +8160,11 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
     padding:0!important;
     border-radius:13px!important}
 
-  /* Settings sits at the end of the same row as the nav. */
+  /* Settings: pinned to the far right, outside the scrolling nav
+     so it is always visible. The divider in front of it now runs
+     border-LEFT (a vertical rule) since the bar is horizontal -
+     the old border-top was a leftover from the vertical rail and
+     would have rendered as an invisible line above the icon. */
   .backup-tools,
   .dark-toggle-side{
     position:static!important;
@@ -8151,8 +8172,11 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
     left:auto!important;right:auto!important;bottom:auto!important;
     width:auto!important;
     margin:0!important;
-    padding:0!important;
+    padding:0 0 0 12px!important;
+    border-top:0!important;
+    border-left:1px solid var(--line)!important;
     display:flex!important;
+    flex-direction:row!important;
     align-items:center!important}
 
   .backup-tools .backup-btn{
@@ -8161,17 +8185,40 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
 }
 
 @media(max-width:480px){
-  /* At 40px+6px gap the 7 buttons needed 316px but a 320px phone
-     only offers 296px, so the settings button dropped to a row of
-     its own. 36px+5px brings the run to 282px and keeps the whole
-     bar on a single line down to the narrowest phones. */
   .side{padding:10px 12px!important;gap:8px!important}
+  .pi-sidebar-logo{width:28px!important;height:28px!important}
   .nav{gap:5px!important}
   .nav button,
   .backup-tools .backup-btn{width:36px!important;height:36px!important;border-radius:11px!important}
   .nav button svg,
   .backup-tools .backup-btn svg{width:17px!important;height:17px!important}
-  .pi-sidebar-logo{width:30px!important;height:30px!important}
+  .backup-tools,
+  .dark-toggle-side{padding-left:8px!important}
+}
+
+/* ---- 4. TIMELINE COULD NOT BE PANNED ON MOBILE --------------
+   Root cause was different from what the earlier touch-action
+   fix addressed: a separate, much more specific desktop rule -
+   "html:not(.dark) body #scheduleApp .timeline" / its dark twin
+   - sets overflow:hidden!important on this exact element (it
+   exists to square off the panel's rounded corners against the
+   toolbar above it). That selector has 1 ID + 2 classes, which
+   outranks the plain ".timeline{overflow-x:auto}" mobile rule
+   regardless of source order, so on phones the table was
+   physically clipped at ~7 days in - there was nothing to pan,
+   the rest of the month simply didn't render as scrollable.
+   Re-declared at the SAME selector/specificity inside a mobile
+   query so it wins by appearing later, restoring the horizontal
+   scroll while keeping every corner-radius/border rule from the
+   original selector intact (only overflow is touched). ---- */
+@media(max-width:700px){
+  html:not(.dark) body #scheduleApp .timeline,
+  html.dark body #scheduleApp .timeline{
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    -webkit-overflow-scrolling:touch!important;
+    touch-action:pan-x pan-y!important;
+    overscroll-behavior-x:contain!important}
 }
 </style>
 <script id="pi-sort-reset-parity">
