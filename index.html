@@ -969,7 +969,18 @@ function ptNameOf(list,id){let it=(list||[]).find(x=>x.id===id);return it?it.nam
 function ptStatusOf(id){return ptLists.statuses.find(x=>x.id===id)||ptLists.statuses[0]||{name:'\u2014',color:'#ddd'}}
 function ptLinkedScheduleProject(j){if(!j)return null;let r=ptResolveLink(j,'schedule');return (r.state==='linked'||r.state==='single')?r.match:null}
 function ptEffectiveStatus(j){return ptStatusOf(j.statusId)}
-function ptStatusFilterOptions(y){let map={},order=[];(y&&y.jobs||[]).forEach(function(j){let st=ptEffectiveStatus(j);if(!map[st.id]){map[st.id]=st;order.push(st.id)}});return order.map(function(id){return map[id]})}
+function ptStatusFilterOptions(y){
+  /* FIX: this used to build the filter list ONLY from statuses that were
+     already IN USE by jobs in the current year - so any status defined in
+     Manage Options but not yet assigned to a job here (or only used in a
+     different year) never appeared in the dropdown at all, making it look
+     like Manage Options' status list wasn't being respected. The filter
+     should offer every status the user has configured, exactly like the
+     Status field inside the New/Edit Project modal already does via
+     `ptLists.statuses` - so it now sources from that same master list,
+     in the same order it was configured (not re-sorted A-Z). */
+  return ptLists.statuses;
+}
 function ptFinanceOf(id){return ptLists.financeStatuses.find(x=>x.id===id)||ptLists.financeStatuses[0]||{name:'\u2014',color:'#ddd'}}
 function ptMoney(amount,currency){let n=Number(amount)||0;return (currency||'THB')+' '+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function ptNetRevenue(j){return (Number(j&&j.ceAmount)||0)-(Number(j&&j.thirdPartyCost)||0)}
