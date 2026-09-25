@@ -7630,7 +7630,7 @@ html.dark .transport-group .driver-grid{
   padding:14px 2px!important;
   margin-bottom:0!important}
 .pi-pv-card>.pt-link-row+.pt-link-row{
-  border-top:1px solid rgba(0,0,0,0.08)!important}
+  border-top:1px solid rgba(120,130,160,0.18)!important}
 html.dark .pi-pv-card>.pt-link-row{
   background:transparent!important;
   border:0!important}
@@ -7922,9 +7922,6 @@ html.dark tr.today-row td:first-child{border-left-color:#f5f5f5!important}
    The two lists that genuinely need row boxes are kept: the
    "Browse & Link" picker (#ptBrowseResults) and the nested
    "multiple possible matches" candidates. ---- */
-.pi-pv-card>.pt-link-row+.pt-link-row,
-html.dark .pi-pv-card>.pt-link-row+.pt-link-row{
-  border-top:0!important}
 
 .pt-link-row{
   border:0!important;
@@ -8032,6 +8029,149 @@ html.dark .pt-link-row .pt-link-row{
 
 @media(max-width:560px){
   .nav button{flex:1 1 100%!important}
+}
+
+/* ============================================================
+   ROUND 2
+   1. Divider lines between rows in the link lists.
+   2. Mobile: link title sits beside its icon, not under it.
+   3. Mobile: sidebar rail becomes a proper horizontal topbar
+      with the logo on its own line at the top.
+   ============================================================ */
+
+/* ---- 1. DIVIDERS BETWEEN LINK ROWS -------------------------
+   Rows are flat (no box), so a hairline between them is what
+   separates one record from the next. Applies to the preview
+   card and the Linked Production Records modal.
+   Excluded: the Browse & Link picker (#ptBrowseResults) and the
+   nested "multiple possible matches" candidates - those rows
+   already carry their own boxes, so a divider would double up. */
+.pt-link-row+.pt-link-row{
+  border-top:1px solid rgba(120,130,160,0.18)!important}
+html.dark .pt-link-row+.pt-link-row{
+  border-top-color:rgba(255,255,255,0.08)!important}
+
+#ptBrowseResults .pt-link-row+.pt-link-row,
+.pt-link-row .pt-link-row+.pt-link-row,
+html.dark #ptBrowseResults .pt-link-row+.pt-link-row,
+html.dark .pt-link-row .pt-link-row+.pt-link-row{
+  border-top:0!important}
+
+
+@media(max-width:700px){
+
+  /* ---- 2. TITLE BESIDE THE ICON ----
+     The info block had flex-basis calc(100% - 46px), which is
+     exactly icon(34) + gap(12) + basis = 100%. With no slack at
+     all, sub-pixel rounding tipped it over the line and it
+     wrapped under the icon. Trimming the basis to leave 14px of
+     slack keeps it locked on line 1 next to the icon, while
+     still being wide enough that the buttons cannot squeeze in
+     beside it - they continue to wrap onto line 2 together. */
+  .pt-link-row>.pt-link-info,
+  .pi-pv-card>.pt-link-row>.pt-link-info{
+    flex:1 1 calc(100% - 60px)!important;
+    min-width:0!important}
+
+  .pt-link-row>.pt-link-icon{align-self:center!important}
+}
+
+
+/* ---- 3. SIDEBAR -> TOPBAR ON MOBILE ------------------------
+   The rail is built for a tall narrow column: position:sticky,
+   height:100vh and overflow:hidden. Laid across the top of a
+   phone that became a full-height panel with its contents
+   clipped, which is the broken strip in the screenshots.
+   Rebuilt as a wrapping flex bar: logo takes the whole first
+   line, the nav icons and the settings button share the second. */
+@media(max-width:950px){
+
+  .shell{grid-template-columns:1fr!important;padding-left:0!important}
+
+  /* The rail can be collapsed on desktop; that state must not
+     carry over and hide the topbar on a phone. */
+  .shell.sidebar-hidden .side,
+  .side{
+    position:static!important;
+    height:auto!important;
+    max-height:none!important;
+    width:100%!important;
+    overflow:visible!important;
+    transform:none!important;
+    opacity:1!important;
+    pointer-events:auto!important;
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:wrap!important;
+    align-items:center!important;
+    justify-content:center!important;
+    gap:10px!important;
+    padding:12px 14px!important;
+    border-radius:0 0 20px 20px!important}
+
+  .shell.sidebar-hidden{grid-template-columns:1fr!important}
+
+  /* Logo: own line, centred, at the top of the bar. */
+  .pi-sidebar-logo{
+    flex:1 1 100%!important;
+    width:34px!important;height:34px!important;
+    margin:0 auto!important;
+    display:block!important}
+
+  /* A topbar has nothing to collapse into, and hiding it would
+     strand the user behind a floating restore button. */
+  .side-toggle-row,
+  .sidebar-show-btn{display:none!important}
+
+  /* Nav icons: one horizontal row, centred, wrapping if needed. */
+  .nav{
+    flex:1 1 auto!important;
+    display:flex!important;
+    flex-direction:row!important;
+    flex-wrap:wrap!important;
+    justify-content:center!important;
+    align-items:center!important;
+    gap:8px!important;
+    width:auto!important;
+    margin:0!important;
+    grid-template-columns:none!important}
+
+  .nav button{
+    flex:none!important;
+    width:44px!important;height:44px!important;
+    min-height:0!important;
+    padding:0!important;
+    border-radius:13px!important}
+
+  /* Settings sits at the end of the same row as the nav. */
+  .backup-tools,
+  .dark-toggle-side{
+    position:static!important;
+    flex:none!important;
+    left:auto!important;right:auto!important;bottom:auto!important;
+    width:auto!important;
+    margin:0!important;
+    padding:0!important;
+    display:flex!important;
+    align-items:center!important}
+
+  .backup-tools .backup-btn{
+    width:44px!important;height:44px!important;
+    padding:0!important;border-radius:13px!important}
+}
+
+@media(max-width:480px){
+  /* At 40px+6px gap the 7 buttons needed 316px but a 320px phone
+     only offers 296px, so the settings button dropped to a row of
+     its own. 36px+5px brings the run to 282px and keeps the whole
+     bar on a single line down to the narrowest phones. */
+  .side{padding:10px 12px!important;gap:8px!important}
+  .nav{gap:5px!important}
+  .nav button,
+  .backup-tools .backup-btn{width:36px!important;height:36px!important;border-radius:11px!important}
+  .nav button svg,
+  .backup-tools .backup-btn svg{width:17px!important;height:17px!important}
+  .pi-sidebar-logo{width:30px!important;height:30px!important}
 }
 </style>
 <script id="pi-sort-reset-parity">
