@@ -8235,6 +8235,45 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
    chart, calendar, document, building) don't have this density
    imbalance, so only Transport's icon is touched. ---- */
 #navTransport svg{transform:translateY(-1px)}
+
+
+/* ============================================================
+   GRID VIEW: LAST CARD ROW OBSCURED BY THE PAGINATION BAR
+   .pi-pagination is `position:sticky;bottom:0`, which is correct
+   INSIDE the scrollable .panel used by list view (it pins the
+   "Showing x-y of z / Prev / Next" bar to the bottom of that
+   panel's own internal scroll area - .panel{max-height:640px;
+   overflow-y:auto}).
+   In GRID view there is no such wrapper - piPaginationHTML() is
+   emitted as a plain sibling immediately after .schedule-grid,
+   sitting directly in the page's own flow. With no scrollable
+   ancestor of its own, `sticky` falls back to the page/viewport
+   as its containing block, so while the user is still scrolling
+   through a multi-row grid the bar pins itself to the bottom of
+   the VIEWPORT and visually floats on top of the last row's
+   cards - hiding their Edit/Delete/Open buttons - until the very
+   end of the page is reached. Single-item grids (one card, no
+   scrolling needed) never showed the problem, which is why it
+   only reproduced with 4-item grids.
+   Fixed by targeting exactly that markup pattern - a
+   .pi-pagination that immediately follows a .schedule-grid - and
+   reverting it to normal in-flow positioning. The list-view
+   pagination inside .panel is untouched and keeps its sticky
+   footer behaviour. Applies to every feature that reuses
+   .schedule-grid (Tracker years/jobs, Schedule projects,
+   Transport projects) and to phones, where the same sticky rule
+   was also live. ---- */
+.schedule-grid + .pi-pagination{
+  position:static!important;
+  bottom:auto!important;
+  z-index:auto!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  margin-top:16px!important;
+  border-radius:12px!important;
+  border-top:1px solid rgba(0,0,0,0.08)!important}
+html.dark .schedule-grid + .pi-pagination{
+  border-top-color:rgba(255,255,255,0.08)!important}
 </style>
 <script id="pi-sort-reset-parity">
 /* ============================================================
