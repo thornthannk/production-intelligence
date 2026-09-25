@@ -8134,17 +8134,26 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
   .side-toggle-row,
   .sidebar-show-btn{display:none!important}
 
-  /* Nav icons: follow the logo on the SAME row. Given its own
-     horizontal scroll (hidden scrollbar) so if the six icons
-     ever don't fit next to the logo + Settings, the strip pans
-     sideways instead of wrapping to a second line or pushing
-     Settings off the edge. */
+  /* Nav icons: follow the logo on the SAME row, CENTERED in the
+     space between the logo and Settings rather than hugging the
+     logo's left edge - `justify-content:flex-start` packed all
+     six icons flush against the logo and left a large empty gap
+     before the Settings gear, exactly the "icons stuck to the
+     logo, too much space before Settings" imbalance reported.
+     Given its own horizontal scroll (hidden scrollbar) so if the
+     six icons ever don't fit in the centered space, the strip
+     pans sideways instead of wrapping to a second line or
+     pushing Settings off the edge - `margin:0 auto` still lets a
+     scrolling flex child center itself when it's narrower than
+     its container, unlike `justify-content:center` on the
+     PARENT `.side`, which would also re-center the logo and
+     Settings (not wanted - only the icon strip should move). */
   .nav{
     flex:1 1 auto!important;
     display:flex!important;
     flex-direction:row!important;
     flex-wrap:nowrap!important;
-    justify-content:flex-start!important;
+    justify-content:center!important;
     align-items:center!important;
     gap:8px!important;
     width:auto!important;
