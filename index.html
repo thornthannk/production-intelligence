@@ -8220,6 +8220,21 @@ html.dark .pt-link-row .pt-link-row+.pt-link-row{
     touch-action:pan-x pan-y!important;
     overscroll-behavior-x:contain!important}
 }
+
+/* ============================================================
+   TOPBAR NAV ICON: PRODUCTION TRANSPORT VISUALLY OFF-CENTER
+   The button box and the icon's own geometric bounding box are
+   both perfectly centered (verified: horizontal midpoint = 12,
+   matching the 24x24 viewBox exactly). The car icon LOOKS
+   off-center inside the white active circle because its visual
+   weight is bottom-heavy: the roof is a thin, mostly-empty
+   outline (y 6-13) while the body + two wheels form a dense,
+   ink-heavy cluster in the lower half (y 13-20). Equal height,
+   unequal density reads to the eye as "sitting too low".
+   Nudged up 1px to compensate - the other five nav icons (home,
+   chart, calendar, document, building) don't have this density
+   imbalance, so only Transport's icon is touched. ---- */
+#navTransport svg{transform:translateY(-1px)}
 </style>
 <script id="pi-sort-reset-parity">
 /* ============================================================
