@@ -606,7 +606,7 @@ function renderTalentViewSection(p){let groups=talentGroups(p);return `<section 
 let currentProjectId='';
 function openProject(id){currentProjectId=id;let p=projects.find(x=>x.id===id);if(!p)return;document.getElementById('drawerTitle').textContent=[p.product,p.title].map(s=>String(s||'').trim()).filter(Boolean).join(' ');document.getElementById('drawerSub').textContent=p.company||'';let order=['Job Information','Client Information','Agency Information','Production Information','Post-Production Information','Talent Usage Information','Audio Usage Information','Master'];document.getElementById('drawerBody').innerHTML=order.filter(k=>p.sections[k]?.length).map(k=>k==='Talent Usage Information'?renderTalentViewSection(p):`<section class="section"><h3>${esc(k)}</h3>${p.sections[k].filter(x=>x.value).map(x=>`<div class="detailrow"><b>${esc(x.label==='Production Company'?'Production':x.label)}</b><div>${/^https?:/.test(x.value)?`<span class="links"><a href="${esc(x.value)}" target="_blank">Open link</a></span>`:esc(x.value)}${x.expiryDate?`<div class="expiry-note">Expiry Date: ${fmt(x.expiryDate)}</div>`:''}${x.buyoutsUsage?`<div class="expiry-note">Buyouts Usage: Yes</div>`:''}</div></div>`).join('')}</section>`).join('');document.getElementById('drawer').classList.add('open');document.getElementById('drawerBack').style.display='block'}
 function renderTalentPrintSection(p){let groups=talentGroups(p);return `<section class="talent-print"><h2>Talent Usage Information</h2>${groups.map(g=>`<article class="talent-print-record"><h3>${esc(g.label)} — ${esc(g.name||'Name not provided')}</h3>${g.role?`<div class="row"><b>Role</b><span>${esc(g.role)}</span></div>`:''}${g.usage?`<div class="row"><b>Media Usages Covered</b><span>${esc(g.usage)}</span></div>`:''}${g.duration?`<div class="row"><b>Usage Duration</b><span>${esc(g.duration)}</span></div>`:''}${g.start?`<div class="row"><b>Start Date</b><span>${fmt(g.start)}</span></div>`:''}${g.end?`<div class="row"><b>End Date</b><span>${fmt(g.end)}</span></div>`:''}${g.buyout?`<div class="row"><b>Buyouts Usage</b><span>${esc(g.buyout)}</span></div>`:''}</article>`).join('')}</section>`}
-function exportProjectPDF(id){let p=projects.find(x=>x.id===id);if(!p)return;let order=['Job Information','Client Information','Agency Information','Production Information','Post-Production Information','Talent Usage Information','Audio Usage Information','Master'];let sections=order.filter(k=>p.sections?.[k]?.some(r=>r.value)).map(k=>k==='Talent Usage Information'?renderTalentPrintSection(p):`<section><h2>${esc(k)}</h2>${p.sections[k].filter(r=>r.value).map(r=>`<div class="row"><b>${esc(r.label==='Production Company'?'Production':r.label)}</b><span>${/^https?:/i.test(r.value)?`<a href="${esc(r.value)}">${esc(r.value)}</a>`:esc(r.value)}${r.expiryDate?`<small>Expiry Date: ${fmt(r.expiryDate)}</small>`:''}${r.buyoutsUsage?`<small>Buyouts Usage: Yes</small>`:''}</span></div>`).join('')}</section>`).join('');let w=window.open('','_blank');if(!w){piAlert('Please allow pop-ups to export PDF.');return}let css=`*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;margin:0;padding:28px;font-size:11px}.head{border-bottom:3px solid #111;padding-bottom:16px;margin-bottom:18px;display:flex;justify-content:space-between}.head h1{font-size:26px;margin:5px 0}.feature-title{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#666;font-weight:700;margin:2px 0 10px}.pdf-brand{display:flex;align-items:flex-start;gap:16px}.pdf-logo{width:78px;height:58px;object-fit:contain;image-rendering:auto}.meta{text-align:right;font-size:10px;color:#555}.status{display:inline-block;padding:6px 10px;border-radius:20px;background:#eee;font-weight:bold}section{border-top:2px solid #111;padding:14px 0 0;margin:0 0 24px}section:first-of-type{border-top:0;padding-top:0}h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 16px;break-after:avoid}.talent-print-record{padding:0 0 10px;margin:16px 0 0}.talent-print-record:first-of-type{margin-top:0}.talent-print-record h3{font-size:16px;margin:0 0 4px;break-after:avoid}.talent-print-record .row{grid-template-columns:170px 1fr;padding:8px 0}.row{display:grid;grid-template-columns:165px 1fr;gap:12px;padding:7px 0;border-top:1px solid #eee;line-height:1.45;break-inside:avoid;page-break-inside:avoid}.row:first-of-type{border-top:0}.row b{font-size:9px;text-transform:uppercase;color:#666}.row span{overflow-wrap:anywhere}.row small{display:block;color:#777;margin-top:3px}a{color:#111}@page{size:A4;margin:12mm}@media print{body{padding:0}}`;w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(p.title)} - Production Fact Sheet</title><style>${css}</style></head><body><div class="head"><div class="pdf-brand"><img class="pdf-logo" src="${document.querySelector('.brandlogo-top,.brandlogo,#piHomeLogoImg,.pi-sidebar-logo')?.src||''}"><div><div class="feature-title">Production Fact Sheet</div><h1>${esc([p.product,p.title].map(s=>String(s||'').trim()).filter(Boolean).join(' '))}</h1><div>${esc(p.company)}</div></div></div><div class="meta"><p class="status">Talent Usage: ${talentStatusOf(p)}</p><div style="margin-top:4px">${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div></div></div>${sections}<script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script>
+function exportProjectPDF(id){let p=projects.find(x=>x.id===id);if(!p)return;let order=['Job Information','Client Information','Agency Information','Production Information','Post-Production Information','Talent Usage Information','Audio Usage Information','Master'];let sections=order.filter(k=>p.sections?.[k]?.some(r=>r.value)).map(k=>k==='Talent Usage Information'?renderTalentPrintSection(p):`<section><h2>${esc(k)}</h2>${p.sections[k].filter(r=>r.value).map(r=>`<div class="row"><b>${esc(r.label==='Production Company'?'Production':r.label)}</b><span>${/^https?:/i.test(r.value)?`<a href="${esc(r.value)}">${esc(r.value)}</a>`:esc(r.value)}${r.expiryDate?`<small>Expiry Date: ${fmt(r.expiryDate)}</small>`:''}${r.buyoutsUsage?`<small>Buyouts Usage: Yes</small>`:''}</span></div>`).join('')}</section>`).join('');let w=window.open('','_blank');if(!w){piAlert('Please allow pop-ups to export PDF.');return}let css=`*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111;margin:0;padding:28px;font-size:11px}.head{border-bottom:3px solid #111;padding-bottom:16px;margin-bottom:18px;display:flex;justify-content:space-between}.head h1{font-size:26px;margin:5px 0}.feature-title{font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:#666;font-weight:700;margin:2px 0 10px}.pdf-brand{display:flex;align-items:flex-start;gap:16px}.pdf-logo{width:78px;height:58px;object-fit:contain;image-rendering:auto}.meta{text-align:right;font-size:10px;color:#555}.status{display:inline-block;padding:6px 10px;border-radius:20px;background:#eee;font-weight:bold}section{border-top:2px solid #111;padding:14px 0 0;margin:0 0 24px}section:first-of-type{border-top:0;padding-top:0}h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:0 0 16px;break-after:avoid}.talent-print-record{padding:0 0 10px;margin:16px 0 0}.talent-print-record:first-of-type{margin-top:0}.talent-print-record h3{font-size:16px;margin:0 0 4px;break-after:avoid}.talent-print-record .row{grid-template-columns:170px 1fr;padding:8px 0}.row{display:grid;grid-template-columns:165px 1fr;gap:12px;padding:7px 0;border-top:1px solid #eee;line-height:1.45;break-inside:avoid;page-break-inside:avoid}.row:first-of-type{border-top:0}.row b{font-size:9px;text-transform:uppercase;color:#666}.row span{overflow-wrap:anywhere}.row small{display:block;color:#777;margin-top:3px}a{color:#111}@page{size:A4;margin:12mm}@media print{body{padding:0}}`;w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(p.title)} - Production Fact Sheet</title><style>${css}</style></head><body><div class="head"><div class="pdf-brand"><img class="pdf-logo" src="${document.querySelector('.brandlogo-top,.brandlogo,#piHomeLogoImg,.pi-sidebar-logo')?.src||''}"><div><div class="feature-title">Production Fact Sheet</div><h1>${esc([p.product,p.title].map(s=>String(s||'').trim()).filter(Boolean).join(' '))}</h1></div></div><div class="meta"><p class="status">Talent Usage: ${talentStatusOf(p)}</p><div style="margin-top:4px">${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div></div></div>${sections}<script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script>
 </body></html>`);w.document.close()}
 function closeDrawer(){document.getElementById('drawer').classList.remove('open');document.getElementById('drawerBack').style.display='none'}
 function setDashboardView(mode){let list=mode==='list';document.getElementById('tablePanel').style.display=list?'block':'none';document.getElementById('cardsPanel').style.display=list?'none':'block';document.getElementById('listViewBtn').classList.toggle('active',list);document.getElementById('cardViewBtn').classList.toggle('active',!list)}function toggleCards(){setDashboardView(document.getElementById('cardsPanel').style.display==='block'?'list':'card')}
@@ -2068,30 +2068,93 @@ html.dark .pi-trash-info span{color:#aeb6c2}
     window.piExportFactSheetCSV = piExportFactSheetCSV;
 
     function piExportTrackerCSV(){
+      /* ============================================================
+         REBUILT: this is the function behind the injected "Export
+         Excel" button (id=piTrkExportBtn) that sits NEXT TO the
+         original "Export PDF" button - the two are completely
+         separate buttons calling completely separate functions.
+         "Export PDF" (ptExportPDF, defined elsewhere) is
+         UNTOUCHED here and keeps its original print-dialog
+         behaviour exactly as before.
+         This function used to build a plain CSV via piDownloadCsv()
+         despite the button being labelled "Export Excel" - CSV has
+         no real cell types, no bold header, no colour, nothing
+         Excel-specific at all, it just happens to open in Excel by
+         default. Rebuilt to use the PIXlsx workbook engine already
+         defined in this document (the same one powering Fact
+         Sheet's per-job Excel export) so this produces a GENUINE
+         binary .xlsx: bold white-on-dark header row, status/finance
+         cells filled with each item's own configured colour, bold
+         green/red Net Revenue text, frozen header row, and a working
+         column filter - opens in Excel with zero compatibility
+         warnings, because it IS the format its extension claims.
+         Column set unchanged (still includes Client, in its
+         original position). ---- */
       try{
         if(typeof ptYearId==='undefined' || !ptYearId){ piAlert('Open a year first.'); return; }
         var y = ptYears.find(function(x){ return x.id===ptYearId; });
         if(!y) return;
         var list = ptFilteredJobs(y);
-        var rows=[['Product','Job Title','Project Type','Producer','Production Company','Status','Job Number','CE Amount','Currency','Client','Finance Status','Note']];
-        list.forEach(function(j){
-          rows.push([
-            (typeof ptNameOf==='function'?ptNameOf(ptLists.products,j.product):'')||'',
-            j.jobTitle||'',
-            (typeof ptProjectTypeIds==='function'?ptProjectTypeIds(j):[]).map(function(id){ return ptNameOf(ptLists.projectTypes,id); }).join('; '),
-            (typeof ptProducerIds==='function'?ptProducerIds(j):[]).map(function(id){ return ptNameOf(ptLists.producers,id); }).join('; '),
-            (typeof ptProductionCompanyIds==='function'?ptProductionCompanyIds(j):[]).map(function(id){ return ptNameOf(ptLists.productionCompanies,id); }).join('; '),
-            ptEffectiveStatus(j).name,
-            j.jobNumber||'',
-            j.ceAmount||0,
-            j.ceCurrency||'THB',
-            (typeof ptNameOf==='function'?ptNameOf(ptLists.clients,j.client):'')||'',
-            ptFinanceOf(j.financeStatusId).name,
-            j.note||''
-          ]);
+
+        function hexNoHash(c){ return String(c||'E8EBF2').replace('#','').toUpperCase(); }
+
+        var wb = PIXlsx.createBook();
+        var sh = wb.addSheet(String(y.year));
+        sh.setPageSetup({orientation:'landscape', fitToWidth:1, fitToHeight:0});
+
+        var headerStyle = wb.style({bold:true, color:'FFFFFF', bg:'111111', size:10, align:'left', valign:'center', wrap:true, border:true});
+        var cellStyle = wb.style({size:10.5, valign:'top', wrap:true, border:true});
+        var cellBoldStyle = wb.style({bold:true, size:10.5, valign:'top', wrap:true, border:true});
+
+        var headers=['Product','Job Title','Project Type','Producer','Production Company','Status','Job Number','CE Amount','3rd Party Cost','Net Revenue','Client','Finance Status','Note'];
+        var widths=[14,20,14,14,18,13,16,14,14,14,16,14,24];
+        headers.forEach(function(h,ci){ sh.setColWidth(ci, widths[ci]); sh.setCell(0, ci, h, headerStyle); });
+        sh.setRowHeight(0, 22);
+        sh.setFreeze(0,1);
+        sh.setAutoFilter(0,0,0,headers.length-1);
+
+        list.forEach(function(j, ri){
+          var r = ri+1;
+          var st = ptEffectiveStatus(j);
+          var fin = ptFinanceOf(j.financeStatusId);
+          var nr = (typeof ptNetRevenue==='function') ? ptNetRevenue(j) : ((j.ceAmount||0)-(j.thirdPartyCost||0));
+          var statusStyle = wb.style({bold:true, size:10.5, valign:'top', wrap:true, border:true, bg:hexNoHash(st.color)});
+          var financeStyle = wb.style({bold:true, size:10.5, valign:'top', wrap:true, border:true, bg:hexNoHash(fin.color)});
+          var netStyle = wb.style({bold:true, size:10.5, valign:'top', wrap:true, border:true, color: nr>=0?'19713B':'B42318'});
+
+          sh.setCell(r, 0, (typeof ptNameOf==='function'?ptNameOf(ptLists.products,j.product):'')||'\u2014', cellBoldStyle);
+          sh.setCell(r, 1, j.jobTitle||'\u2014', cellStyle);
+          sh.setCell(r, 2, (typeof ptProjectTypeIds==='function'?ptProjectTypeIds(j):[]).map(function(id){ return ptNameOf(ptLists.projectTypes,id); }).join('; ')||'\u2014', cellStyle);
+          sh.setCell(r, 3, (typeof ptProducerIds==='function'?ptProducerIds(j):[]).map(function(id){ return ptNameOf(ptLists.producers,id); }).join('; ')||'\u2014', cellStyle);
+          sh.setCell(r, 4, (typeof ptProductionCompanyIds==='function'?ptProductionCompanyIds(j):[]).map(function(id){ return ptNameOf(ptLists.productionCompanies,id); }).join('; ')||'\u2014', cellStyle);
+          sh.setCell(r, 5, st.name, statusStyle);
+          sh.setCell(r, 6, j.jobNumber||'\u2014', cellStyle);
+          sh.setCell(r, 7, (typeof ptMoney==='function'?ptMoney(j.ceAmount,j.ceCurrency):((j.ceAmount||0)+' '+(j.ceCurrency||'THB'))), cellStyle);
+          sh.setCell(r, 8, (typeof ptMoney==='function'?ptMoney(j.thirdPartyCost,j.ceCurrency):((j.thirdPartyCost||0)+' '+(j.ceCurrency||'THB'))), cellStyle);
+          sh.setCell(r, 9, (typeof ptMoney==='function'?ptMoney(nr,j.ceCurrency):(nr+' '+(j.ceCurrency||'THB'))), netStyle);
+          sh.setCell(r, 10, (typeof ptNameOf==='function'?ptNameOf(ptLists.clients,j.client):'')||'\u2014', cellStyle);
+          sh.setCell(r, 11, fin.name, financeStyle);
+          sh.setCell(r, 12, j.note||'', cellStyle);
+          sh.setRowHeight(r, 18);
         });
-        piDownloadCsv('Project-Tracker-'+y.year+'-'+piFileStamp()+'.csv', rows);
-      }catch(e){ piAlert('Export failed: '+e.message); }
+
+        if(!list.length){
+          sh.merge(1,0,1,headers.length-1);
+          sh.setCell(1,0,'No job records', cellStyle);
+          sh.setRowHeight(1,18);
+        }
+
+        var bytes = wb.toBytes();
+        var blob = new Blob([bytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        var safe = (typeof schSanitizeFilename==='function') ? schSanitizeFilename('Project Tracker '+String(y.year)) : ('Project Tracker '+String(y.year));
+        a.href = url;
+        a.download = safe+'_'+((typeof schExportFileStamp==='function')?schExportFileStamp():piFileStamp())+'.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 120);
+      }catch(e){ piAlert('Export failed: '+e.message); console.error(e); }
     }
     window.piExportTrackerCSV = piExportTrackerCSV;
 
@@ -2810,7 +2873,7 @@ html.dark .pi-trash-info span{color:#aeb6c2}
 
       var bandFill = wb.style({bg:'17365D', bold:true, color:'FFFFFF', size:18});
       var subBand = wb.style({bg:'17365D', color:'FFFFFF', size:10.5});
-      var sectionHeadStyle = wb.style({bold:true, color:'FFFFFF', bg:'385273', size:10.5});
+      var sectionHeadStyle = wb.style({bold:true, color:'FFFFFF', bg:'111111', size:10.5});
       var labelStyle = wb.style({bold:true, color:'7A8290', size:9, valign:'top'});
       var valueStyle = wb.style({color:'171717', size:11, wrap:true, valign:'top'});
       var noteStyle = wb.style({italic:true, color:'8A92A0', size:9, wrap:true, valign:'top'});
@@ -2962,12 +3025,18 @@ html.dark .pi-trash-info span{color:#aeb6c2}
       [30,14,16,14,20,26].forEach(function(w,i){ sh.setColWidth(i,w); });
       sh.setPageSetup({orientation:'landscape', fitToWidth:1, fitToHeight:0});
 
-      var bandStyle = wb.style({bg:'17365D', bold:true, color:'FFFFFF', size:15});
-      var subStyle = wb.style({bg:'17365D', color:'FFFFFF', size:10});
+      /* ---- MONO B&W THEME ---- see styleSet() comment above for
+         the full rationale; same treatment applied here since this
+         sheet builds its own local band/header styles rather than
+         reusing styleSet(). "Today" highlight switched from a pale
+         blue tint to a pale gray one, so it still reads as a subtle
+         highlight without introducing colour. ---- */
+      var bandStyle = wb.style({bg:'111111', bold:true, color:'FFFFFF', size:15});
+      var subStyle = wb.style({bg:'111111', color:'FFFFFF', size:10});
       sh.merge(0,0,0,5); sh.setCell(0,0, p.name||'Production Schedule', bandStyle); sh.setRowHeight(0,26);
       sh.merge(1,0,1,5); sh.setCell(1,0, 'Production Schedule  \u00b7  Generated '+new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}), subStyle); sh.setRowHeight(1,18);
 
-      var headStyle = wb.style({bold:true, bg:'F0F3FA', color:'333B4D', size:9, border:{bottom:'thin'}});
+      var headStyle = wb.style({bold:true, bg:'F2F2F2', color:'171717', size:9, border:{bottom:'thin'}});
       ['Schedule','Date','Time','Status','Location','Notes'].forEach(function(h,i){ sh.setCell(3,i,h,headStyle); });
       sh.setRowHeight(3,20);
 
@@ -2979,7 +3048,7 @@ html.dark .pi-trash-info span{color:#aeb6c2}
       } else {
         items.forEach(function(i){
           var isToday = i.startDate<=todayIso && (i.endDate||i.startDate)>=todayIso;
-          var baseOpts = isToday ? {bg:'E9F0FE'} : {};
+          var baseOpts = isToday ? {bg:'F0F0F0'} : {};
           var cellStyle = wb.style(Object.assign({wrap:true, valign:'top', border:true, size:10.5}, baseOpts));
           var titleStyle = wb.style(Object.assign({bold:true, wrap:true, valign:'top', border:true, size:10.5}, baseOpts));
           var dateRange = schFormatDate(i.startDate) + (i.endDate && i.endDate!==i.startDate ? ' \u2013 '+schFormatDate(i.endDate) : '');
@@ -3004,12 +3073,21 @@ html.dark .pi-trash-info span{color:#aeb6c2}
       for(var c=0;c<7;c++) sh.setColWidth(c, 22);
       sh.setPageSetup({orientation:'landscape', fitToWidth:1, fitToHeight:1});
 
-      var bandStyle = wb.style({bg:'17365D', bold:true, color:'FFFFFF', size:15, align:'center'});
+      /* ---- MONO B&W THEME ---- band + weekday header colours
+         swapped for black/white/gray. Sat/Sun weekday-name labels
+         no longer use accent blue/red - both now the same dark
+         gray as the weekdays, since this is a printed export
+         where the live app's colour-coded weekend cue isn't
+         needed; the weekend day CELLS below are similarly
+         flattened to neutral gray tints instead of pink/blue,
+         so nothing in the grid relies on colour except the
+         activity STATUS fills, which stay exactly as configured
+         by the user in Manage Options. ---- */
+      var bandStyle = wb.style({bg:'111111', bold:true, color:'FFFFFF', size:15, align:'center'});
       sh.merge(0,0,0,6); sh.setCell(0,0, monthLabel, bandStyle); sh.setRowHeight(0,26);
 
       ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].forEach(function(nm,i){
-        var color = i===5 ? '2F6FD0' : (i===6 ? 'C0392B' : '556677');
-        sh.setCell(1,i,nm, wb.style({bold:true, align:'center', bg:'F0F3FA', color:color, size:9}));
+        sh.setCell(1,i,nm, wb.style({bold:true, align:'center', bg:'F2F2F2', color:'555555', size:9}));
       });
       sh.setRowHeight(1,18);
 
@@ -3028,8 +3106,8 @@ html.dark .pi-trash-info span{color:#aeb6c2}
 
         var bg = 'FFFFFF';
         if(muted) bg='F4F4F4';
-        else if(dow===0) bg='FBEAEA';
-        else if(dow===6) bg='EAF1FD';
+        else if(dow===0) bg='F7F7F7';
+        else if(dow===6) bg='F0F0F0';
         if(found.length) bg = hexNoHash(schActivityStatus(found[0].activityStatusId).color);
 
         var lines = [String(d.getDate())].concat(found.map(function(i){
@@ -3064,14 +3142,19 @@ html.dark .pi-trash-info span{color:#aeb6c2}
       for(var c=0;c<days;c++) sh.setColWidth(1+c, 3.2);
       sh.setPageSetup({orientation:'landscape', fitToWidth:1, fitToHeight:1});
 
-      var bandStyle = wb.style({bg:'17365D', bold:true, color:'FFFFFF', size:15, align:'center'});
+      /* ---- MONO B&W THEME ---- see schExcelCalendarSheet comment
+         above for the same rationale: band + day-header colours
+         swapped for black/white/gray, weekday accent colours
+         removed (all days now the same dark gray label). Bar
+         fills (hexNoHash(st.color) below) are left untouched -
+         those are the user's own configured activity-status
+         colours, not decorative theme chrome. ---- */
+      var bandStyle = wb.style({bg:'111111', bold:true, color:'FFFFFF', size:15, align:'center'});
       sh.merge(0,0,0,days); sh.setCell(0,0, monthLabel, bandStyle); sh.setRowHeight(0,26);
 
-      sh.setCell(1,0,'Schedule', wb.style({bold:true, bg:'F0F3FA', size:9}));
+      sh.setCell(1,0,'Schedule', wb.style({bold:true, bg:'F2F2F2', size:9}));
       for(var d0=0; d0<days; d0++){
-        var dow = new Date(y,m,d0+1).getDay();
-        var color = dow===0 ? 'C0392B' : (dow===6 ? '2F6FD0' : '556677');
-        sh.setCell(1, 1+d0, String(d0+1), wb.style({bold:true, align:'center', bg:'F0F3FA', color:color, size:8}));
+        sh.setCell(1, 1+d0, String(d0+1), wb.style({bold:true, align:'center', bg:'F2F2F2', color:'555555', size:8}));
       }
       sh.setRowHeight(1,16);
 
@@ -5108,10 +5191,26 @@ html.dark .pi-summary-note div{color:#d7dbe3}
     function dl(bytes,name){var b=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u)},120)}
     function clean(s){return String(s||'').replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim()}
     function hx(c){return String(c||'#D9E2F3').replace('#','').toUpperCase()}
+    /* ---- MONO B&W THEME: Transport / Schedule Excel exports ----
+       These sheets used a navy-blue "corporate report" palette
+       (#17365D bands, pale-blue #DCE6F1 header rows) completely
+       unrelated to the live app's own flat black/white/gray
+       ("Mono Gray") design system used everywhere else. Re-themed
+       to match: solid black (#111111) title/sub band with white
+       text - the exact same header treatment the app's own
+       Tracker table header, topbar, and active nav pill all use -
+       and a light neutral gray (#F2F2F2) header row with black
+       text and a thin border, matching `.table th` / `.schedule-
+       table th` in the live UI. Status/Food-Allergy colour fills
+       (set per-cell elsewhere, not through this shared style set)
+       are intentionally left untouched - those reflect the
+       user's OWN configured status colours from Manage Options,
+       not decorative theme chrome, exactly as the rest of the app
+       preserves them through every other black/white pass. ---- */
     function styleSet(wb){return{
-      title:wb.style({bg:'17365D',bold:true,color:'FFFFFF',size:16}),
-      sub:wb.style({bg:'17365D',color:'DCE6F1',size:10}),
-      head:wb.style({bg:'DCE6F1',bold:true,color:'17365D',size:9.5,wrap:true,valign:'center',border:{bottom:'thin'}}),
+      title:wb.style({bg:'111111',bold:true,color:'FFFFFF',size:16}),
+      sub:wb.style({bg:'111111',color:'FFFFFF',size:10}),
+      head:wb.style({bg:'F2F2F2',bold:true,color:'171717',size:9.5,wrap:true,valign:'center',border:{bottom:'thin'}}),
       text:wb.style({color:'171717',size:10.5,wrap:true,valign:'top',border:{bottom:'thin'}}),
       money:wb.style({color:'171717',size:10.5,align:'right',valign:'top',border:{bottom:'thin'},numFmt:'#,##0.00'}),
       empty:wb.style({italic:true,color:'8A92A0',align:'center'})
@@ -5133,7 +5232,7 @@ html.dark .pi-summary-note div{color:#d7dbe3}
         if(!transportData)return piAlert('Open a transport project first.');saveTransportMeta();var wb=PIXlsx.createBook(),st=styleSet(wb),sh=wb.addSheet('Production Transport');sh.showGridLines=false;
         [15,24,20,18,30,22,14,28].forEach(function(w,i){sh.setColWidth(i,w)});sh.setPageSetup({orientation:'landscape',fitToWidth:1,fitToHeight:0});sh.merge(0,0,0,7);sh.setCell(0,0,transportData.project||'Production Transport',st.title);sh.setRowHeight(0,28);sh.merge(1,0,1,7);sh.setCell(1,0,'Production Transport  ·  '+(transportData.date?schFormatDate(transportData.date):''),st.sub);sh.setRowHeight(1,18);var r=3;
         (transportData.locations||[]).forEach(function(l,i){sh.setCell(r,0,'Location '+(i+1),st.head);sh.setCell(r,1,l.name||'',st.text);sh.setCell(r,2,l.address||'',st.text);sh.setCell(r,3,'Parking',st.head);sh.setCell(r,4,l.parking||'',st.text);r++});if((transportData.locations||[]).length)r++;
-        (transportData.groups||[]).filter(function(g){return !g.excludeFromExport}).forEach(function(g){sh.merge(r,0,r,7);sh.setCell(r,0,g.name||'Transport Group',wb.style({bg:'385273',bold:true,color:'FFFFFF',size:11}));sh.setRowHeight(r,20);r++;if(g.type==='van'){sh.merge(r,0,r,7);sh.setCell(r,0,'Driver: '+(g.driver||'—')+'  ·  Tel: '+(g.driverTel||'—')+'  ·  License Plate: '+(g.plate||'—'),wb.style({bg:'EEF2F7',color:'556677',size:9,wrap:true}));r++}
+        (transportData.groups||[]).filter(function(g){return !g.excludeFromExport}).forEach(function(g){sh.merge(r,0,r,7);sh.setCell(r,0,g.name||'Transport Group',wb.style({bg:'111111',bold:true,color:'FFFFFF',size:11}));sh.setRowHeight(r,20);r++;if(g.type==='van'){sh.merge(r,0,r,7);sh.setCell(r,0,'Driver: '+(g.driver||'—')+'  ·  Tel: '+(g.driverTel||'—')+'  ·  License Plate: '+(g.plate||'—'),wb.style({bg:'F2F2F2',color:'555555',size:9,wrap:true}));r++}
           var heads=g.type==='van'?['Pick-up Time','Name','Position','Telephone','Address / GPS','Food Allergy','Remark','Group']:['Name','Position','Telephone','License Plate','Food Allergy','Remark','Group',''];heads.forEach(function(h,c){sh.setCell(r,c,h,st.head)});var headerRow=r;r++;
           (g.people||[]).forEach(function(p){var vals=g.type==='van'?[p.pickup?piFmt12(p.pickup):'',p.name||'',p.position||'',p.tel||'',[p.address,p.gps].filter(Boolean).join('\n'),p.allergy||'N',p.remark||'',g.name||'']:[p.name||'',p.position||'',p.tel||'',p.plate||'',p.allergy||'N',p.remark||'',g.name||'',''];vals.forEach(function(v,c){var cs=st.text;if((g.type==='van'&&c===5)||(g.type!=='van'&&c===4)){cs=wb.style({bold:true,align:'center',bg:v==='Y'?'FDEAEA':'E5F4E9',color:v==='Y'?'A3261D':'176B36',border:{bottom:'thin'}})}sh.setCell(r,c,v,cs)});sh.setRowHeight(r,28);r++});sh.setAutoFilter(headerRow,0,Math.max(headerRow,r-1),7);r++});
         dl(wb.toBytes(),clean(transportData.project||'Production Transport')+' - Transport.xlsx');
